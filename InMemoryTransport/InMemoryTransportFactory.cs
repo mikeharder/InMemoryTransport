@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
 
@@ -81,12 +80,12 @@ namespace InMemoryTransport
             public IScheduler OutputReaderScheduler { get; set; }
 #endif
 
-            public Task SendRequestAsync(string request)
+            public Task SendRequestAsync(byte[] request)
             {
-                return Input.WriteAsync(Encoding.UTF8.GetBytes(request));
+                return Input.WriteAsync(request);
             }
 
-            public async Task<string> GetResponseAsync()
+            public async Task<byte[]> GetResponseAsync()
             {
                 while (true)
                 {
@@ -95,7 +94,7 @@ namespace InMemoryTransport
                     {
                         if (result.Buffer.Length >= 100)
                         {
-                            return Encoding.UTF8.GetString(result.Buffer.ToArray());
+                            return result.Buffer.ToArray();
                         }
                         else
                         {
