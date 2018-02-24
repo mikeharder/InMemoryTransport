@@ -3,13 +3,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
 using System.Text;
 
 namespace InMemoryTransport
 {
     public class Program
     {
-        private static readonly byte[] _request = Encoding.UTF8.GetBytes("GET /plaintext HTTP/1.1\r\nHost: localhost:5000\r\n\r\n");
+        private const int _pipelineDepth = 1;
+
+        private static readonly byte[] _request = Encoding.UTF8.GetBytes(
+            string.Concat(Enumerable.Repeat("GET /plaintext HTTP/1.1\r\nHost: localhost:5000\r\n\r\n", _pipelineDepth)));
+
+        private const int _expectedResponseLength = 132;
 
         public static void Main(string[] args)
         {
@@ -30,8 +36,14 @@ namespace InMemoryTransport
             host.Start();
 
             var connection = ((InMemoryTransportFactory)host.Services.GetRequiredService<ITransportFactory>()).Connection;
+
             connection.SendRequestAsync(_request).Wait();
-            Console.WriteLine(Encoding.UTF8.GetString(connection.GetResponseAsync().Result));
+
+            for (var i=0; i < _pipelineDepth; i++)
+            {
+                var response = connection.GetResponseAsync(_expectedResponseLength).Result;
+                Console.WriteLine(Encoding.UTF8.GetString(response));
+            }
 
             Console.ReadLine();
         }

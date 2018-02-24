@@ -85,32 +85,29 @@ namespace InMemoryTransport
                 return Input.WriteAsync(request);
             }
 
-            public async Task<byte[]> GetResponseAsync()
+            public async Task<byte[]> GetResponseAsync(int length)
             {
                 while (true)
                 {
                     var result = await Output.ReadAsync();
-                    try
+
+                    var bufferLength = result.Buffer.Length;
+                    if (bufferLength >= length)
                     {
-                        if (result.Buffer.Length >= 100)
-                        {
-                            return result.Buffer.ToArray();
-                        }
-                        else
-                        {
+                        var responseBuffer = result.Buffer.Slice(0, length);
 #if NETCOREAPP2_1
-                            Output.AdvanceTo(result.Buffer.Start, result.Buffer.End);
+                        Output.AdvanceTo(responseBuffer.End, responseBuffer.End);
 #elif NETCOREAPP2_0
-                            Output.Advance(result.Buffer.Start, result.Buffer.End);
+                        Output.Advance(responseBuffer.End, responseBuffer.End);
 #endif
-                        }
+                        return responseBuffer.ToArray();
                     }
-                    finally
+                    else if (bufferLength < length)
                     {
 #if NETCOREAPP2_1
-                        Output.AdvanceTo(result.Buffer.End);
+                        Output.AdvanceTo(result.Buffer.Start, result.Buffer.End);
 #elif NETCOREAPP2_0
-                        Output.Advance(result.Buffer.End);
+                        Output.Advance(result.Buffer.Start, result.Buffer.End);
 #endif
                     }
                 }
