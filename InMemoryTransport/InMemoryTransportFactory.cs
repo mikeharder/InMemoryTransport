@@ -89,25 +89,26 @@ namespace InMemoryTransport
             {
                 while (true)
                 {
-                    var result = await Output.ReadAsync();
+                    var buffer = (await Output.ReadAsync()).Buffer;
+                    var consumed = buffer.Start;
+                    var examined = buffer.End;
 
-                    var bufferLength = result.Buffer.Length;
-                    if (bufferLength >= length)
+                    try
                     {
-                        var responseBuffer = result.Buffer.Slice(0, length);
-#if NETCOREAPP2_1
-                        Output.AdvanceTo(responseBuffer.End, responseBuffer.End);
-#elif NETCOREAPP2_0
-                        Output.Advance(responseBuffer.End, responseBuffer.End);
-#endif
-                        return responseBuffer.ToArray();
+                        if (buffer.Length >= length)
+                        {
+                            var response = buffer.Slice(0, length);
+                            consumed = response.End;
+                            examined = response.End;
+                            return response.ToArray();
+                        }
                     }
-                    else if (bufferLength < length)
+                    finally
                     {
 #if NETCOREAPP2_1
-                        Output.AdvanceTo(result.Buffer.Start, result.Buffer.End);
+                        Output.AdvanceTo(consumed, examined);
 #elif NETCOREAPP2_0
-                        Output.Advance(result.Buffer.Start, result.Buffer.End);
+                        Output.Advance(consumed, examined);
 #endif
                     }
                 }
