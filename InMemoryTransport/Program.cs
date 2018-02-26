@@ -1,21 +1,12 @@
-﻿using Benchmarks.Middleware;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
-using System.Text;
+﻿using System;
+using System.Diagnostics;
+using System.Threading;
 
 namespace InMemoryTransport
 {
     public class Program
     {
-        private const int _pipelineDepth = 1;
-
-        private static readonly byte[] _request = Encoding.UTF8.GetBytes(
-            string.Concat(Enumerable.Repeat("GET /plaintext HTTP/1.1\r\nHost: localhost:5000\r\n\r\n", _pipelineDepth)));
-
-        private const int _expectedResponseLength = 132;
+        private static readonly TimeSpan _duration = TimeSpan.FromSeconds(5);
 
         public static void Main(string[] args)
         {
@@ -27,24 +18,27 @@ namespace InMemoryTransport
 #error Invalid TFM
 #endif
 
-            var host = new WebHostBuilder()
-                .UseKestrel()
-                .ConfigureServices(services => services.AddSingleton<ITransportFactory, InMemoryTransportFactory>())
-                .Configure(app => app.UsePlainText())
-                .Build();
+            Console.WriteLine($"Benchmarking for {_duration}...");
 
-            host.Start();
+            var b = new InMemoryTransportBenchmark();
+            b.GlobalSetupPlaintext();
 
-            var connection = ((InMemoryTransportFactory)host.Services.GetRequiredService<ITransportFactory>()).Connection;
+            var token = new CancellationTokenSource(_duration).Token;
 
-            connection.SendRequestAsync(_request).Wait();
-
-            for (var i=0; i < _pipelineDepth; i++)
+            var sw = Stopwatch.StartNew();
+            var iterations = 0;
+            while (!token.IsCancellationRequested)
             {
-                var response = connection.GetResponseAsync(_expectedResponseLength).Result;
-                Console.WriteLine(Encoding.UTF8.GetString(response));
+                b.PlaintextPipelined();
+                iterations++;
             }
+            sw.Stop();
 
+            var rps = iterations * InMemoryTransportBenchmark.PipelineDepth / sw.Elapsed.TotalSeconds;
+
+            // netcoreapp2.0:   7,875 RPS
+            // netcoreapp2.1: 153,905 RPS
+            Console.WriteLine($"{Math.Round(rps)} requests / second");
             Console.ReadLine();
         }
     }
