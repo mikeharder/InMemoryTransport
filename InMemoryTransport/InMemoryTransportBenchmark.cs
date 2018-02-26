@@ -31,6 +31,7 @@ Connection: keep-alive
         public void GlobalSetupPlaintext()
         {
             _host = new WebHostBuilder()
+                .UseSetting("preventHostingStartup", "true")
                 .UseKestrel()
                 .ConfigureServices(services => services.AddSingleton<ITransportFactory, InMemoryTransportFactory>())
                 .Configure(app => app.UseMiddleware<PlaintextMiddleware>())
