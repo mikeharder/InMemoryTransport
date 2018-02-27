@@ -29,15 +29,13 @@ namespace InMemoryTransport
             var iterations = 0;
             while (!token.IsCancellationRequested)
             {
-                Console.ReadLine();
-                //b.Plaintext();
+                // b.Plaintext();
                 b.PlaintextPipelined();
                 iterations++;
-                Console.Write(".");
             }
             sw.Stop();
 
-            //var rps = iterations / sw.Elapsed.TotalSeconds;
+            // var rps = iterations / sw.Elapsed.TotalSeconds;
             var rps = iterations * InMemoryTransportBenchmark.PipelineDepth / sw.Elapsed.TotalSeconds;
 
             // Plaintext
@@ -49,7 +47,6 @@ namespace InMemoryTransport
             // netcoreapp2.1: 152k RPS
 
             Console.WriteLine($"{Math.Round(rps)} requests / second");
-            Console.ReadLine();
         }
     }
 }
