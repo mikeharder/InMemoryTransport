@@ -33,6 +33,7 @@ Connection: keep-alive
             _host = new WebHostBuilder()
                 .UseSetting("preventHostingStartup", "true")
                 .UseKestrel()
+                .UseUrls("http://localhost:5000")
                 .ConfigureServices(services => services.AddSingleton<ITransportFactory, InMemoryTransportFactory>())
                 .Configure(app => app.UseMiddleware<PlaintextMiddleware>())
                 .Build();
