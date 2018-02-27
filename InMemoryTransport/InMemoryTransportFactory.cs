@@ -89,7 +89,8 @@ namespace InMemoryTransport
             {
                 while (true)
                 {
-                    var buffer = (await Output.ReadAsync()).Buffer;
+                    var result = await Output.ReadAsync();
+                    var buffer = result.Buffer;
                     var consumed = buffer.Start;
                     var examined = buffer.End;
 

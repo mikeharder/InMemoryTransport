@@ -29,9 +29,11 @@ namespace InMemoryTransport
             var iterations = 0;
             while (!token.IsCancellationRequested)
             {
+                Console.ReadLine();
                 //b.Plaintext();
                 b.PlaintextPipelined();
                 iterations++;
+                Console.Write(".");
             }
             sw.Stop();
 
