@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace InMemoryTransport
 {
     public class Program
     {
         private static readonly TimeSpan _duration = TimeSpan.FromSeconds(5);
+        private const int _requests = 10000000;
 
         public static void Main(string[] args)
         {
@@ -18,34 +21,71 @@ namespace InMemoryTransport
 #error Invalid TFM
 #endif
 
-            Console.WriteLine($"Benchmarking for {_duration}...");
+            //Console.WriteLine($"Benchmarking for {_duration}...");
+            Console.WriteLine($"Benchmarking 1,000,000 requests...");
 
             var b = new InMemoryTransportBenchmark();
             b.GlobalSetupPlaintext();
 
             var token = new CancellationTokenSource(_duration).Token;
 
-            var sw = Stopwatch.StartNew();
             var iterations = 0;
-            while (!token.IsCancellationRequested)
+            var sw = Stopwatch.StartNew();
+            var seconds = 0;
+
+            var tasks = new Task[b.Connections.Count];
+            for (var i = 0; i < b.Connections.Count; i++) {
+                var index = i;
+                tasks[i] = Task.Run(async () =>
+                {
+                    while (Interlocked.Increment(ref iterations) * InMemoryTransportBenchmark.PipelineDepth < _requests)
+                    {
+                        await b.Connections[index].SendRequestAsync(InMemoryTransportBenchmark._plaintextPipelinedRequest);
+                        await b.Connections[index].GetResponseAsync(InMemoryTransportBenchmark._plaintextPipelinedExpectedResponseLength);
+
+                        var newSeconds = sw.Elapsed.Seconds;
+                        if (Interlocked.Exchange(ref seconds, newSeconds) != newSeconds)
+                        {
+                            Console.WriteLine($"[{sw.Elapsed}] {iterations * InMemoryTransportBenchmark.PipelineDepth} requests");
+                        }
+                    }
+                });
+            }
+            Task.WaitAll(tasks);
+
+            /*
+            // while (!token.IsCancellationRequested)
+            while (iterations * InMemoryTransportBenchmark.PipelineDepth < _requests)
             {
                 // b.Plaintext();
                 b.PlaintextPipelined();
                 iterations++;
+                if (sw.Elapsed.Seconds != seconds)
+                {
+                    Console.WriteLine($"[{sw.Elapsed}] {iterations * InMemoryTransportBenchmark.PipelineDepth} requests");
+                    seconds = sw.Elapsed.Seconds;
+                }
             }
+            */
+
             sw.Stop();
 
             // var rps = iterations / sw.Elapsed.TotalSeconds;
             var rps = iterations * InMemoryTransportBenchmark.PipelineDepth / sw.Elapsed.TotalSeconds;
 
             // Plaintext
-            // netcoreapp2.0: 78k RPS
+            // netcoreapp2.0:  78k RPS
             // netcoreapp2.1: 106k RPS
 
             // PlaintextPipelined
             // netcoreapp2.0: 130k RPS
             // netcoreapp2.1: 152k RPS
 
+            // PlaintextPipelined, 256 parallel connections
+            // netcoreapp2.0:  887k RPS
+            // netcoreapp2.1: 1172k RPS
+
+            Console.WriteLine($"{iterations * InMemoryTransportBenchmark.PipelineDepth} requests in {sw.Elapsed}");
             Console.WriteLine($"{Math.Round(rps)} requests / second");
         }
     }

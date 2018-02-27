@@ -1,47 +1,63 @@
-﻿using System;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
-
+using System.Collections.Generic;
 #if NETCOREAPP2_1
-using System.Buffers;
 using System.IO.Pipelines;
 #elif NETCOREAPP2_0
 using Microsoft.AspNetCore.Server.Kestrel.Internal.System.IO.Pipelines;
+using System;
+using System.Net;
 #endif
 
 namespace InMemoryTransport
 {
     public class InMemoryTransportFactory : ITransportFactory
     {
-        public InMemoryConnection Connection { get; } = new InMemoryConnection();
+        private const int _numConnections = 256;
+
+        private readonly Dictionary<IEndPointInformation, IReadOnlyList<InMemoryConnection>> _connections =
+            new Dictionary<IEndPointInformation, IReadOnlyList<InMemoryConnection>>();
+
+        public IReadOnlyDictionary<IEndPointInformation, IReadOnlyList<InMemoryConnection>> Connections => _connections;
 
         public ITransport Create(IEndPointInformation endPointInformation, IConnectionHandler handler)
         {
-            return new InMemoryTransport(handler, Connection);
+            var connections = new InMemoryConnection[_numConnections];
+            for (var i=0; i < _numConnections; i++)
+            {
+                connections[i] = new InMemoryConnection();
+            }
+
+            _connections.Add(endPointInformation, connections);
+
+            return new InMemoryTransport(handler, connections);
         }
 
         private class InMemoryTransport : ITransport
         {
-            private IConnectionHandler _handler;
-            private InMemoryConnection _connection;
+            private readonly IConnectionHandler _handler;
+            private readonly IReadOnlyList<InMemoryConnection> _connections;
 
-            public InMemoryTransport(IConnectionHandler handler, InMemoryConnection connection)
+            public InMemoryTransport(IConnectionHandler handler, IReadOnlyList<InMemoryConnection> connections)
             {
                 _handler = handler;
-                _connection = connection;
+                _connections = connections;
             }
 
             public Task BindAsync()
             {
+                foreach (var connection in _connections)
+                {
 #if NETCOREAPP2_1
-                _handler.OnConnection(_connection);
+                    _handler.OnConnection(connection);
 #elif NETCOREAPP2_0
-                var connectionContext = _handler.OnConnection(_connection);
-                _connection.ConnectionId = connectionContext.ConnectionId;
-                _connection.Input = connectionContext.Input;
-                _connection.Output = connectionContext.Output;
+                    var connectionContext = _handler.OnConnection(connection);
+                    connection.ConnectionId = connectionContext.ConnectionId;
+                    connection.Input = connectionContext.Input;
+                    connection.Output = connectionContext.Output;
 #endif
+                }
+
                 return Task.CompletedTask;
             }
 
