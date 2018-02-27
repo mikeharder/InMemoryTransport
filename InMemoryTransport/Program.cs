@@ -22,7 +22,7 @@ namespace InMemoryTransport
 #endif
 
             //Console.WriteLine($"Benchmarking for {_duration}...");
-            Console.WriteLine($"Benchmarking 1,000,000 requests...");
+            Console.WriteLine($"Benchmarking {_requests} requests...");
 
             var b = new InMemoryTransportBenchmark();
             b.GlobalSetupPlaintext();
@@ -34,9 +34,10 @@ namespace InMemoryTransport
             var seconds = 0;
 
             var tasks = new Task[b.Connections.Count];
-            for (var i = 0; i < b.Connections.Count; i++) {
+            for (var i = 0; i < tasks.Length; i++)
+            {
                 var index = i;
-                tasks[i] = Task.Run(async () =>
+                tasks[index] = Task.Run(async () =>
                 {
                     while (Interlocked.Increment(ref iterations) * InMemoryTransportBenchmark.PipelineDepth < _requests)
                     {
