@@ -12,13 +12,14 @@ namespace InMemoryTransport
 {
     public class InMemoryTransportBenchmark
     {
+        // Must use explicit line endings to ensure identical string on all platforms
         public static readonly byte[] _plaintextRequest = Encoding.UTF8.GetBytes(
-@"GET /plaintext HTTP/1.1
-Host: localhost
-Accept: text/plain,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7
-Connection: keep-alive
+            "GET /plaintext HTTP/1.1\r\n" +
+            "Host: localhost\r\n" +
+            "Accept: text/plain,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7\r\n" +
+            "Connection: keep-alive\r\n" +
+            "\r\n");
 
-");
         public const int _plaintextExpectedResponseLength = 132;
 
         public const int PipelineDepth = 16;
