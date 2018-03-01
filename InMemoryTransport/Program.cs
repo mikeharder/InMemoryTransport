@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -93,6 +95,9 @@ namespace InMemoryTransport
 #else
 #error Invalid TFM
 #endif
+
+            var microsoftNetCoreAppVersion = Path.GetDirectoryName(typeof(string).Assembly.Location).Split(Path.DirectorySeparatorChar).Last();
+            Console.WriteLine($"Microsoft.NETCore.App: {microsoftNetCoreAppVersion}");
 
             var kestrelVersion = FileVersionInfo.GetVersionInfo(
                 typeof(Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions).Assembly.Location).ProductVersion;
