@@ -13,13 +13,7 @@ namespace InMemoryTransport
 
         public static void Main(string[] args)
         {
-#if NETCOREAPP2_1
-            Console.WriteLine("netcoreapp2.1" + Environment.NewLine);
-#elif NETCOREAPP2_0
-            Console.WriteLine("netcoreapp2.0" + Environment.NewLine);
-#else
-#error Invalid TFM
-#endif
+            PrintVersions();
 
             //Console.WriteLine($"Benchmarking for {_duration}...");
             Console.WriteLine($"Benchmarking {_requests} requests...");
@@ -88,6 +82,23 @@ namespace InMemoryTransport
 
             Console.WriteLine($"{iterations * InMemoryTransportBenchmark.PipelineDepth} requests in {sw.Elapsed}");
             Console.WriteLine($"{Math.Round(rps)} requests / second");
+        }
+
+        private static void PrintVersions()
+        {
+#if NETCOREAPP2_1
+            Console.WriteLine("TargetFramework: netcoreapp2.1");
+#elif NETCOREAPP2_0
+            Console.WriteLine("TargetFramework: netcoreapp2.0");
+#else
+#error Invalid TFM
+#endif
+
+            var kestrelVersion = FileVersionInfo.GetVersionInfo(
+                typeof(Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions).Assembly.Location).ProductVersion;
+            Console.WriteLine($"Kestrel: {kestrelVersion}");
+
+            Console.WriteLine();
         }
     }
 }
