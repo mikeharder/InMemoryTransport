@@ -40,12 +40,4 @@ namespace Benchmarks.Middleware
             return response.Body.WriteAsync(_helloWorldPayload, 0, payloadLength);
         }
     }
-
-    public static class PlaintextMiddlewareExtensions
-    {
-        public static IApplicationBuilder UsePlainText(this IApplicationBuilder builder)
-        {
-            return builder.UseMiddleware<PlaintextMiddleware>();
-        }
-    }
 }
