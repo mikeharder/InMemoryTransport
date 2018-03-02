@@ -36,7 +36,7 @@ namespace InMemoryTransport
                 .UseSetting("preventHostingStartup", "true")
                 .UseKestrel()
                 .UseUrls("http://localhost:5000")
-                .ConfigureServices(services => services.AddSingleton<ITransportFactory, InMemoryTransportFactory>())
+                .ConfigureServices(services => services.AddSingleton<ITransportFactory>(new InMemoryTransportFactory()))
                 .Configure(app => app.UseMiddleware<PlaintextMiddleware>())
                 .Build();
 
